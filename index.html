@@ -268,6 +268,50 @@ canvas{max-width:100%;}
   .content{padding-bottom:max(22px,env(safe-area-inset-bottom));}
   #toasts{bottom:max(20px,env(safe-area-inset-bottom));}
 }
+/* ---- Alt gezinme çubuğu: S24 Ultra gibi uzun ekranlarda tek elle erişim ---- */
+.botnav{display:none;}
+@media(max-width:860px){
+  .botnav{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:color-mix(in srgb,var(--bg-2) 92%,transparent);backdrop-filter:blur(14px);
+    border-top:1px solid var(--border);justify-content:space-around;align-items:stretch;
+    padding:6px 4px;padding-bottom:max(6px,env(safe-area-inset-bottom));
+  }
+  .botnav button{
+    flex:1;background:none;border:none;color:var(--text-faint);
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    font-size:10.5px;font-weight:600;padding:5px 0 3px;border-radius:12px;
+    min-height:50px;position:relative;transition:color .15s;
+  }
+  .botnav button .bic{font-size:21px;line-height:1;}
+  .botnav button.active{color:var(--accent);}
+  .botnav .bn-badge{position:absolute;top:1px;left:calc(50% + 4px);background:var(--red);color:#fff;
+    font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:10px;display:grid;place-items:center;padding:0 3px;}
+  .content{padding-bottom:calc(62px + env(safe-area-inset-bottom));}
+  /* dokunma hedeflerini büyüt */
+  .icon-btn{padding:8px;font-size:16px;}
+  .btn{padding:10px 15px;}
+  .nav button{padding:12px 12px;}
+}
+/* ---- S24 Ultra & benzeri geniş-uzun telefonlar (≈384–480px CSS genişlik) ---- */
+@media(max-width:480px){
+  .content{padding:14px 14px calc(62px + env(safe-area-inset-bottom));}
+  .grid{gap:13px;}
+  .card{padding:15px;border-radius:14px;}
+  .card.pad-sm{padding:13px;}
+  .stat{padding:15px;}
+  .stat .val{font-size:25px;}
+  .topbar h2{font-size:17px;}
+  input,select,textarea{padding:12px 13px;font-size:15px;}
+  .seg button{padding:8px 14px;font-size:13.5px;}
+  .modal{border-radius:18px 18px 0 0;}
+  .modal-bg{padding:0;align-items:flex-end;}
+  .modal-b{max-height:75vh;}
+  .timer-ring{width:230px;height:230px;}
+  .timer-time .t{font-size:46px;}
+  .topic{flex-wrap:wrap;}
+  .topic .tname{flex:1 1 100%;}
+}
 </style>
 </head>
 <body>
@@ -302,6 +346,7 @@ canvas{max-width:100%;}
       <button class="btn icon ghost" id="themeBtn" title="Tema">🌙</button>
     </div>
     <div class="content" id="view"></div>
+    <nav class="botnav" id="botnav"></nav>
   </div>
 </div>
 
@@ -553,6 +598,28 @@ function buildNav(){
       ${p.id==="mistakes"&&due>0?`<span class="nav-badge">${due}</span>`:""}
     </button>`).join("");
   $$("#nav button").forEach(b=>b.onclick=()=>{navigate(b.dataset.page);closeSidebar();});
+  buildBotNav();
+}
+const BOTNAV=[
+  {id:"dashboard",label:"Panel",icon:"🏠"},
+  {id:"subjects",label:"Konular",icon:"📚"},
+  {id:"timer",label:"Süre",icon:"⏱️"},
+  {id:"questions",label:"Soru",icon:"✍️"},
+  {id:"__menu",label:"Menü",icon:"☰"},
+];
+function buildBotNav(){
+  const bn=$("#botnav");if(!bn)return;
+  const due=dueReviewCount();
+  bn.innerHTML=BOTNAV.map(p=>`
+    <button data-bn="${p.id}" class="${p.id===currentPage?'active':''}">
+      <span class="bic">${p.icon}</span><span>${p.label}</span>
+      ${p.id==="__menu"&&due>0?`<span class="bn-badge">${due}</span>`:""}
+    </button>`).join("");
+  $$("#botnav button").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.bn;
+    if(id==="__menu"){ $("#menuBtn").click(); return; }
+    navigate(id);
+  });
 }
 function navigate(id){
   currentPage=id; buildNav();
@@ -1767,6 +1834,13 @@ RENDER.settings=function(){
     </div>
 
     <div class="card mt">
+      <div class="card-h"><h3>📲 Uygulama Olarak Yükle (PWA)</h3></div>
+      <p class="tiny muted">Telefonunda ana ekrana ekleyip tam ekran, kendi ikonuyla açılan bir uygulama gibi kullan. Çevrimdışı da çalışır.</p>
+      <button class="btn primary" id="installBtn">⬇️ Uygulamayı Yükle</button>
+      <div class="tiny faint mt" id="installHint"></div>
+    </div>
+
+    <div class="card mt">
       <div class="card-h"><h3>💾 Veri Yedekleme</h3></div>
       <p class="tiny muted">Tüm verilerin tarayıcında <b>kalıcı</b> olarak saklanır. Başka cihaza taşımak veya yedeklemek için dışa aktar.</p>
       <div class="row wrap">
@@ -1788,6 +1862,11 @@ RENDER.settings=function(){
 
   $$("#setTheme button").forEach(b=>b.onclick=()=>{S.settings.theme=b.dataset.t;applyTheme();save();RENDER.settings();});
   $("#setSavePomo").onclick=saveSettings;
+  // PWA yükleme butonu
+  const ib=$("#installBtn"),ih=$("#installHint");
+  if(isStandalone()){ ib.disabled=true; ib.textContent="✓ Uygulama zaten yüklü"; ih.textContent="Şu an uygulama modunda çalışıyorsun."; }
+  else if(deferredPrompt){ ib.disabled=false; ib.onclick=doInstall; ih.textContent="Tek dokunuşla yüklemek için butona bas."; }
+  else { ib.disabled=true; ih.innerHTML="Otomatik yükleme yalnızca uygulama bir <b>web adresinden</b> açıldığında çıkar. Dosyadan açtıysan: tarayıcı menüsü <b>⋮ → “Ana ekrana ekle”</b> ile ekleyebilirsin (aynı şekilde çalışır)."; }
   $("#exportBtn").onclick=exportData;
   $("#importBtn").onclick=()=>$("#importFile").click();
   $("#importFile").onchange=importData;
@@ -1839,6 +1918,46 @@ function importData(e){
 }
 
 /* ============================================================
+   PWA — Progressive Web App desteği
+   (Service worker + yükleme istemi. Bir web adresinden (http/https)
+    açıldığında tam PWA olarak çalışır; dosyadan açınca uygulama yine
+    çevrimdışı tek dosya olarak sorunsuz çalışır.)
+   ============================================================ */
+let deferredPrompt=null;
+function registerSW(){
+  if(!("serviceWorker" in navigator)) return;
+  if(!location.protocol.startsWith("http")) return; // file:// güvenli köken değil
+  const swCode=`
+    const C="yks-takip-v1";
+    self.addEventListener("install",e=>self.skipWaiting());
+    self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
+    self.addEventListener("fetch",e=>{
+      if(e.request.method!=="GET")return;
+      e.respondWith(caches.open(C).then(cache=>cache.match(e.request).then(cached=>{
+        const net=fetch(e.request).then(res=>{ if(res&&res.status===200) cache.put(e.request,res.clone()); return res; }).catch(()=>cached);
+        return cached||net;
+      })));
+    });`;
+  try{
+    const url=URL.createObjectURL(new Blob([swCode],{type:"text/javascript"}));
+    navigator.serviceWorker.register(url).catch(()=>{});
+  }catch(e){}
+}
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault(); deferredPrompt=e;
+  if(currentPage==="settings") RENDER.settings();
+  toast("📲 Bu uygulama telefonuna yüklenebilir — Ayarlar'dan yükle","ok");
+});
+window.addEventListener("appinstalled",()=>{ deferredPrompt=null; toast("Uygulama yüklendi 🎉","ok"); if(currentPage==="settings")RENDER.settings(); });
+async function doInstall(){
+  if(!deferredPrompt){toast("Yükleme istemi yok — tarayıcı menüsünden 'Ana ekrana ekle' kullan","warn");return;}
+  deferredPrompt.prompt();
+  try{ await deferredPrompt.userChoice; }catch(e){}
+  deferredPrompt=null; if(currentPage==="settings")RENDER.settings();
+}
+function isStandalone(){return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;}
+
+/* ============================================================
    BAŞLAT
    ============================================================ */
 function init(){
@@ -1853,6 +1972,7 @@ function init(){
   window.addEventListener("beforeunload",saveNow);
   // her dakika seri/zaman kontrolü
   setInterval(()=>{updateSideInfo();},60000);
+  registerSW();
 }
 // global erişim (onclick için)
 Object.assign(window,{navigate,closeModal,editSubject,deleteSubject,addTopic,editTopic,
