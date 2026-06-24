@@ -48,6 +48,7 @@ body{
   background:var(--bg); color:var(--text); font-family:var(--sans);
   font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
   min-height:100vh; transition:background .25s,color .25s;
+  overflow-x:hidden; /* yatay taşmayı engelle */
 }
 a{color:var(--accent);text-decoration:none;}
 button{font-family:inherit;cursor:pointer;}
@@ -288,6 +289,10 @@ canvas{max-width:100%;}
   .botnav .bn-badge{position:absolute;top:1px;left:calc(50% + 4px);background:var(--red);color:#fff;
     font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:10px;display:grid;place-items:center;padding:0 3px;}
   .content{padding-bottom:calc(62px + env(safe-area-inset-bottom));}
+  /* TÜM çok sütunlu bölümleri telefonda tek sütuna indir (yatay taşmayı bitirir) */
+  .content .grid{grid-template-columns:1fr !important;}
+  .grid-2{grid-template-columns:1fr !important;}
+  .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
   /* dokunma hedeflerini büyüt */
   .icon-btn{padding:8px;font-size:16px;}
   .btn{padding:10px 15px;}
@@ -669,14 +674,17 @@ function barChart(cv,labels,values,opts={}){
   for(let i=0;i<=4;i++){const y=pad.t+ch*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
     ctx.textAlign="right";ctx.fillText(Math.round(max*(4-i)/4),pad.l-5,y+3);}
   const n=values.length,gap=cw/n*0.28,bw=(cw/n)-gap;
+  const lblStep=Math.max(1,Math.ceil(n/Math.max(1,Math.floor(cw/26)))); // dar ekranda etiketleri seyrelt
   values.forEach((v,i)=>{
     const x=pad.l+ (cw/n)*i + gap/2;
     const bh=ch*v/max;const y=pad.t+ch-bh;
     const grad=ctx.createLinearGradient(0,y,0,pad.t+ch);
     grad.addColorStop(0,opts.color||css("--accent"));grad.addColorStop(1,(opts.color2||css("--accent-2")));
     ctx.fillStyle=grad;roundRect(ctx,x,y,bw,Math.max(bh,1),4);ctx.fill();
-    ctx.fillStyle=css("--text-faint");ctx.font="9px var(--sans)";ctx.textAlign="center";
-    ctx.fillText(labels[i],x+bw/2,h-9);
+    if(i%lblStep===0||i===n-1){
+      ctx.fillStyle=css("--text-faint");ctx.font="9px var(--sans)";ctx.textAlign="center";
+      ctx.fillText(labels[i],x+bw/2,h-9);
+    }
   });
 }
 function lineChart(cv,labels,values,opts={}){
