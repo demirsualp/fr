@@ -242,6 +242,15 @@ tr:last-child td{border-bottom:none;}
 .quote{font-size:16px;font-style:italic;line-height:1.6;}
 .lvl-ring{width:54px;height:54px;flex-shrink:0;}
 
+/* Panel üst kart (hero) */
+.hero{background:linear-gradient(135deg,var(--accent-soft),transparent);padding:24px;}
+.hero-lbl{font-size:13px;color:var(--text-dim);font-weight:600;letter-spacing:.2px;}
+.hero-num{font-size:52px;font-weight:800;line-height:1.02;letter-spacing:-2px;margin-top:4px;}
+.hero-num span{font-size:19px;font-weight:600;color:var(--text-dim);margin-left:8px;letter-spacing:0;}
+.hero-sub{font-size:13px;color:var(--text-faint);margin-top:4px;}
+.hero-quote{margin-top:18px;padding-top:16px;border-top:1px solid var(--border-soft);
+  font-style:italic;color:var(--text-dim);font-size:15.5px;line-height:1.65;}
+
 .hide{display:none!important;}
 .center{text-align:center;}
 .mt{margin-top:16px;}.mb{margin-bottom:16px;}
@@ -290,10 +299,12 @@ canvas{max-width:100%;}
   .botnav .bn-badge{position:absolute;top:1px;left:calc(50% + 4px);background:var(--red);color:#fff;
     font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:10px;display:grid;place-items:center;padding:0 3px;}
   .content{padding-bottom:calc(62px + env(safe-area-inset-bottom));}
-  /* TÜM çok sütunlu bölümleri telefonda tek sütuna indir (yatay taşmayı bitirir) */
-  .content .grid{grid-template-columns:1fr !important;}
-  .grid-2{grid-template-columns:1fr !important;}
+  /* TÜM çok sütunlu bölümleri telefonda tek sütuna indir.
+     minmax(0,1fr): geniş içerik (ısı haritası vb.) sütunu şişiremez → taşma biter */
+  .content .grid{grid-template-columns:minmax(0,1fr) !important;}
+  .grid-2{grid-template-columns:minmax(0,1fr) !important;}
   .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+  .content .grid > *{min-width:0;}
   /* dokunma hedeflerini büyüt */
   .icon-btn{padding:8px;font-size:16px;}
   .btn{padding:10px 15px;}
@@ -301,17 +312,21 @@ canvas{max-width:100%;}
 }
 /* ---- S24 Ultra & benzeri geniş-uzun telefonlar (≈384–480px CSS genişlik) ---- */
 @media(max-width:600px){
-  /* Telefon için daha büyük, dolu, okunaklı arayüz */
-  body{font-size:16.5px;}
-  .content{padding:14px 13px calc(70px + env(safe-area-inset-bottom));}
-  .grid{gap:13px;}
-  .card{padding:17px;border-radius:16px;}
-  .card.pad-sm{padding:14px;}
+  /* Telefon için büyük, ferah, nefes alan arayüz */
+  body{font-size:16px;line-height:1.55;}
+  .content{padding:18px 16px calc(78px + env(safe-area-inset-bottom));}
+  .grid{gap:18px;}
+  .mb{margin-bottom:18px;}
+  .mt{margin-top:18px;}
+  .card{padding:20px;border-radius:18px;}
+  .card.pad-sm{padding:16px;}
+  .card-h{margin-bottom:16px;}
   .card-h h3{font-size:17.5px;}
-  .stat{padding:17px;}
+  .stat-grid{gap:16px;}
+  .stat{padding:18px;}
   .stat .lab{font-size:13.5px;}
-  .stat .val{font-size:30px;}
-  .stat .sub{font-size:13px;}
+  .stat .val{font-size:30px;margin-top:9px;}
+  .stat .sub{font-size:13px;margin-top:5px;}
   .topbar{padding:13px 15px;}
   .topbar h2{font-size:20px;}
   .tiny{font-size:13px;}
@@ -806,15 +821,11 @@ RENDER.dashboard=function(){
 
   $("#view").innerHTML=`
     <div class="grid" style="grid-template-columns:1fr;gap:18px">
-      <div class="card" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:linear-gradient(120deg,var(--accent-soft),transparent)">
-        <div>
-          <div class="muted tiny" style="font-weight:600">YKS 2026'ya kalan</div>
-          <div style="font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px">${examDays} <span style="font-size:18px;font-weight:600" class="muted">gün</span></div>
-          <div class="tiny faint">${fmtDate(S.goals.examDate)}</div>
-        </div>
-        <div style="flex:1;min-width:200px;text-align:right">
-          <div class="quote muted">"${quote}"</div>
-        </div>
+      <div class="card hero">
+        <div class="hero-lbl">YKS 2026'ya kalan</div>
+        <div class="hero-num">${examDays}<span>gün</span></div>
+        <div class="hero-sub">${fmtDate(S.goals.examDate)}</div>
+        <div class="hero-quote">"${quote}"</div>
       </div>
 
       <div class="stat-grid">
