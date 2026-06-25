@@ -520,8 +520,8 @@ function defaultState(){
       scoreWeights:{tytBase:0.4,aytBase:0.6} // ağırlık (kullanıcı ayarlar)
     },
     gam:{xp:0,level:1,streak:0,bestStreak:0,lastActive:null,badges:[]},
-    settings:{theme:"dark",pomoWork:25,pomoBreak:5,pomoLong:15,longEvery:4,
-      sound:true,burnoutWarn:120 /*dakika*/},
+    settings:{theme:"dark",pomoWork:40,pomoBreak:10,pomoLong:20,longEvery:4,
+      sound:true,burnoutWarn:120,pomoV2:true /*dakika*/},
   };
 }
 
@@ -541,6 +541,11 @@ function migrate(){
   // YKS tarihi geçmişte kaldıysa (veya eski varsayılan) gelecek sınava güncelle
   if(!S.goals.examDate || S.goals.examDate==="2026-06-20" || S.goals.examDate < todayKey()){
     S.goals.examDate=d.goals.examDate;
+  }
+  // Pomodoro varsayılanını bir kez 40/10'a güncelle (kullanıcı değiştirmediyse)
+  if(!S.settings.pomoV2){
+    if(S.settings.pomoWork===25 && S.settings.pomoBreak===5){S.settings.pomoWork=40;S.settings.pomoBreak=10;S.settings.pomoLong=20;}
+    S.settings.pomoV2=true;
   }
 }
 let saveTimer=null;
@@ -905,7 +910,7 @@ RENDER.dashboard=function(){
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>Yıllık Çalışma Aktivitesi</h3><div class="spacer"></div><span class="tiny faint">${Math.round(totalFocus()/3600)} saat toplam</span></div>
+        <div class="card-h"><h3>Yıllık Aktivite</h3><div class="spacer"></div><span class="tiny faint">${totalH} sa · ${totalQ} soru</span></div>
         <div id="dashHeat"></div>
       </div>
     </div>`;
@@ -956,21 +961,26 @@ function renderWeak(el,limit){
   }).join("");
 }
 
-/* Heatmap */
+/* Heatmap — çalışma süresi (dk) + çözülen soru birlikte = günlük aktivite */
 function renderHeatmap(el){
   const days=364;const keys=rangeKeys(days);
-  const vals=keys.map(k=>focusOnDay(k));
+  const vals=keys.map(k=>Math.round(focusOnDay(k)/60)+questionsOnDay(k));
   const max=Math.max(1,...vals);
-  const lvl=v=>{if(v===0)return 0;const r=v/max;return r<0.25?1:r<0.5?2:r<0.75?3:4;};
-  const colors=[css("--bg-3"),hexA(css("--accent"),.3),hexA(css("--accent"),.5),hexA(css("--accent"),.75),css("--accent")];
-  // ay etiketleri
-  let cells="";let monthLabels="";
+  const lvl=v=>{if(v<=0)return 0;const r=v/max;return r<0.25?1:r<0.5?2:r<0.75?3:4;};
+  // tema-bağımsız kesin renkler (boş hücre koyu/açık temaya göre)
+  const dark = S.settings.theme!=="light";
+  const acc = "#4f8cff";
+  const empty = dark ? "#1c2330" : "#e7ebf1";
+  const colors=[empty,hexA(acc,.3),hexA(acc,.5),hexA(acc,.78),acc];
+  let cells="";
   keys.forEach((k,i)=>{
-    const v=vals[i];const d=parseKey(k);
-    cells+=`<div class="cell" title="${fmtDate(k)}: ${fmtDur(v)}" style="background:${colors[lvl(v)]}"></div>`;
+    const mins=Math.round(focusOnDay(k)/60), qs=questionsOnDay(k);
+    cells+=`<div class="cell" title="${fmtDate(k)} · ${mins} dk · ${qs} soru" style="background:${colors[lvl(vals[i])]}"></div>`;
   });
   el.innerHTML=`<div class="heat-wrap"><div class="heat">${cells}</div></div>
-    <div class="row" style="justify-content:flex-end;margin-top:8px"><div class="heat-legend">Az ${colors.map(c=>`<span class="cell" style="background:${c}"></span>`).join("")} Çok</div></div>`;
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:10px">
+      <span class="tiny faint">çalışma + soru</span>
+      <div class="heat-legend">Az ${colors.map(c=>`<span class="cell" style="background:${c}"></span>`).join("")} Çok</div></div>`;
 }
 
 /* ---------------- DERSLER & KONULAR ---------------- */
