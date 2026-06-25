@@ -811,8 +811,19 @@ const QUOTES=[
   "Küçük ilerleme de ilerlemedir. Sıfır olmasın yeter.",
   "Hedefe giden yol, bugün açtığın kitapla başlar.",
 ];
+let dashChartMode="calisma", dashChartTouched=false;
+function drawDashChart(){
+  const cv=$("#dashStudy"); if(!cv) return;
+  const last14=rangeKeys(14);
+  if(dashChartMode==="soru")
+    barChart(cv,last14.map(k=>parseKey(k).getDate()),last14.map(k=>questionsOnDay(k)),{h:180,color:css("--green"),color2:"#56d364"});
+  else
+    barChart(cv,last14.map(k=>parseKey(k).getDate()),last14.map(k=>Math.round(focusOnDay(k)/60)),{h:180});
+}
 RENDER.dashboard=function(){
   refreshStreak();
+  // Kullanıcı seçmediyse: çalışma süresi yokbut soru varsa otomatik 'Soru' grafiğini göster
+  if(!dashChartTouched){ dashChartMode=(totalFocus()===0 && totalQuestions()>0)?"soru":"calisma"; }
   const tk=todayKey();
   const todayFocus=focusOnDay(tk);
   const weekKeys=rangeKeys(7);
@@ -853,7 +864,12 @@ RENDER.dashboard=function(){
 
       <div class="grid" style="grid-template-columns:1.4fr 1fr;gap:18px" id="dashRow">
         <div class="card">
-          <div class="card-h"><h3>Son 14 Gün Çalışma</h3><div class="spacer"></div><span class="tiny faint">dakika</span></div>
+          <div class="card-h"><h3>Son 14 Gün</h3><div class="spacer"></div>
+            <div class="seg" id="dashChartSeg" style="padding:2px">
+              <button data-dc="calisma" class="${dashChartMode==='calisma'?'active':''}" style="padding:5px 11px;font-size:12px">Çalışma</button>
+              <button data-dc="soru" class="${dashChartMode==='soru'?'active':''}" style="padding:5px 11px;font-size:12px">Soru</button>
+            </div>
+          </div>
           <canvas id="dashStudy"></canvas>
         </div>
         <div class="card">
@@ -895,8 +911,8 @@ RENDER.dashboard=function(){
     </div>`;
 
   // grafikler
-  const last14=rangeKeys(14);
-  barChart($("#dashStudy"),last14.map(k=>parseKey(k).getDate()),last14.map(k=>Math.round(focusOnDay(k)/60)),{h:180});
+  drawDashChart();
+  $$("#dashChartSeg button").forEach(b=>b.onclick=()=>{dashChartMode=b.dataset.dc;dashChartTouched=true;$$("#dashChartSeg button").forEach(x=>x.classList.toggle("active",x.dataset.dc===dashChartMode));drawDashChart();});
   progressRing($("#dashLvl"),clamp((S.gam.xp-xpForLevel(S.gam.level))/(xpForLevel(S.gam.level+1)-xpForLevel(S.gam.level)),0,1),{size:54,w:6});
   renderWeak($("#dashWeak"),4);
   renderHeatmap($("#dashHeat"));
